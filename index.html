@@ -3,133 +3,232 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Farm Prototype</title>
+<title>Cozy Farm Deluxe</title>
 <style>
 body{
     margin:0;
+    overflow:hidden;
     font-family:Arial,sans-serif;
-    background:#87c76e;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
+    background:linear-gradient(#87ceeb,#b8e986);
 }
-h1{
-    margin-top:20px;
+#topbar{
+    position:absolute;
+    top:10px;
+    left:50%;
+    transform:translateX(-50%);
+    background:white;
+    padding:10px 20px;
+    border-radius:15px;
+    display:flex;
+    gap:20px;
+    z-index:10;
+    box-shadow:0 4px 10px rgba(0,0,0,0.2);
+}
+#controls{
+    position:absolute;
+    bottom:15px;
+    left:50%;
+    transform:translateX(-50%);
+    display:flex;
+    gap:10px;
+    z-index:10;
+}
+button{
+    padding:12px 18px;
+    border:none;
+    border-radius:10px;
+    background:#ffcc66;
+    font-size:16px;
+    cursor:pointer;
 }
 #game{
     display:grid;
-    grid-template-columns:repeat(8,60px);
-    gap:4px;
-    margin:20px;
+    grid-template-columns:repeat(8,80px);
+    gap:6px;
+    justify-content:center;
+    margin-top:100px;
 }
 .tile{
+    width:80px;
+    height:80px;
+    background:#8b5a2b;
+    border-radius:12px;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    font-size:40px;
+    cursor:pointer;
+    transition:0.2s;
+    position:relative;
+}
+.tile:hover{
+    transform:scale(1.05);
+}
+.grow{
+    animation:growing 0.8s infinite alternate;
+}
+@keyframes growing{
+    from{transform:translateY(0px);}
+    to{transform:translateY(-4px);}
+}
+#character{
+    position:absolute;
     width:60px;
     height:60px;
-    background:#8b5a2b;
-    border-radius:8px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    cursor:pointer;
-    user-select:none;
-    font-size:28px;
+    left:50px;
+    top:500px;
+    transition:0.12s linear;
+    font-size:50px;
 }
-.info{
+#market{
+    position:absolute;
+    right:15px;
+    top:100px;
     background:white;
-    padding:12px 20px;
-    border-radius:12px;
-    margin-bottom:20px;
-}
-button{
-    padding:10px 16px;
-    border:none;
-    border-radius:8px;
-    cursor:pointer;
-    font-size:16px;
+    padding:15px;
+    border-radius:15px;
+    width:180px;
+    box-shadow:0 4px 10px rgba(0,0,0,0.2);
 }
 </style>
 </head>
 <body>
 
-<h1>🌾 Cozy Farm Prototype</h1>
-
-<div class="info">
-    Coins: <span id="coins">50</span> |
-    Seeds: <span id="seeds">5</span>
+<div id="topbar">
+    <div>💰 Coins: <span id="coins">100</span></div>
+    <div>🌾 Wheat Seeds: <span id="wheatSeeds">5</span></div>
+    <div>🥕 Carrot Seeds: <span id="carrotSeeds">5</span></div>
 </div>
 
-<button onclick="buySeeds()">Buy Seeds (10 coins)</button>
+<div id="market">
+    <h3>🛒 Market</h3>
+    <button onclick="buySeed('wheat')">Buy Wheat</button>
+    <br><br>
+    <button onclick="buySeed('carrot')">Buy Carrot</button>
+</div>
 
 <div id="game"></div>
+
+<div id="character">🧑‍🌾</div>
+
+<div id="controls">
+    <button onclick="selected='wheat'">🌾 Plant Wheat</button>
+    <button onclick="selected='carrot'">🥕 Plant Carrot</button>
+</div>
 
 <script>
 const game = document.getElementById("game");
 const coinsEl = document.getElementById("coins");
-const seedsEl = document.getElementById("seeds");
+const wheatEl = document.getElementById("wheatSeeds");
+const carrotEl = document.getElementById("carrotSeeds");
 
-let coins = 50;
-let seeds = 5;
+let coins = 100;
+let wheatSeeds = 5;
+let carrotSeeds = 5;
+let selected = "wheat";
 
-const tiles = [];
+const character = document.getElementById("character");
+let x=50;
+let y=500;
+
+document.addEventListener("keydown",(e)=>{
+    if(e.key==="ArrowRight") x+=15;
+    if(e.key==="ArrowLeft") x-=15;
+    if(e.key==="ArrowUp") y-=15;
+    if(e.key==="ArrowDown") y+=15;
+
+    character.style.left=x+"px";
+    character.style.top=y+"px";
+});
 
 function updateUI(){
-    coinsEl.textContent = coins;
-    seedsEl.textContent = seeds;
+    coinsEl.textContent=coins;
+    wheatEl.textContent=wheatSeeds;
+    carrotEl.textContent=carrotSeeds;
 }
 
-function createTile(index){
-    const div = document.createElement("div");
-    div.className = "tile";
-    div.dataset.state = "empty";
-    div.innerHTML = "";
+function buySeed(type){
+    if(coins<20){
+        alert("Not enough coins");
+        return;
+    }
 
-    div.onclick = () => handleTile(div);
+    coins-=20;
 
-    game.appendChild(div);
-    tiles.push(div);
+    if(type==="wheat") wheatSeeds+=3;
+    if(type==="carrot") carrotSeeds+=3;
+
+    updateUI();
+}
+
+function createTile(){
+    const tile=document.createElement("div");
+    tile.className="tile";
+    tile.dataset.state="empty";
+
+    tile.onclick=()=>handleTile(tile);
+
+    game.appendChild(tile);
 }
 
 function handleTile(tile){
-    const state = tile.dataset.state;
 
-    if(state === "empty"){
-        if(seeds <= 0){
-            alert("No seeds!");
+    if(tile.dataset.state!=="empty"){
+        if(tile.dataset.state==="readyWheat"){
+            coins+=25;
+        }
+        if(tile.dataset.state==="readyCarrot"){
+            coins+=35;
+        }
+
+        tile.dataset.state="empty";
+        tile.innerHTML="";
+        tile.classList.remove("grow");
+        updateUI();
+        return;
+    }
+
+    if(selected==="wheat"){
+        if(wheatSeeds<=0){
+            alert("No wheat seeds");
             return;
         }
 
-        seeds--;
+        wheatSeeds--;
         updateUI();
 
-        tile.dataset.state = "growing";
-        tile.innerHTML = "🌱";
+        tile.innerHTML="🌱";
+        tile.classList.add("grow");
+        tile.dataset.state="growingWheat";
 
-        setTimeout(() => {
-            tile.dataset.state = "ready";
-            tile.innerHTML = "🥕";
-        }, 5000);
-
-    } else if(state === "ready"){
-        coins += 20;
-        updateUI();
-
-        tile.dataset.state = "empty";
-        tile.innerHTML = "";
+        setTimeout(()=>{
+            tile.innerHTML="🌾";
+            tile.dataset.state="readyWheat";
+        },8000);
     }
-}
 
-function buySeeds(){
-    if(coins >= 10){
-        coins -= 10;
-        seeds += 3;
+    if(selected==="carrot"){
+        if(carrotSeeds<=0){
+            alert("No carrot seeds");
+            return;
+        }
+
+        carrotSeeds--;
         updateUI();
-    } else {
-        alert("Not enough coins!");
+
+        tile.innerHTML="🥕";
+        tile.classList.add("grow");
+        tile.dataset.state="growingCarrot";
+
+        setTimeout(()=>{
+            tile.innerHTML="🥕✨";
+            tile.dataset.state="readyCarrot";
+        },12000);
     }
 }
 
 for(let i=0;i<40;i++){
-    createTile(i);
+    createTile();
 }
 
 updateUI();
